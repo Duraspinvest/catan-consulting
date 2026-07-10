@@ -1,0 +1,1263 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0A2540">
+<title>Catan Consulting</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<link rel="manifest" href="manifest-catan.json">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-catan-192.png">
+<link rel="apple-touch-icon" href="icon-catan-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Catan Consulting">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --navy:#0A2540;--navy-mid:#12345A;--navy-light:#1B4F8A;
+  --gold:#D4A017;--gold-light:#F0C040;
+  --accent:#2B7FFF;
+  --white:#FFFFFF;--gray-50:#F8FAFC;--gray-100:#EEF2F7;
+  --gray-200:#D6DEE8;--gray-400:#8A9BB0;--gray-600:#4A5A6B;--gray-800:#1E2C3A;
+  --q1:#EF4444;--q1-bg:#FEF2F2;--q1-border:#FECACA;
+  --q2:#2B7FFF;--q2-bg:#EFF6FF;--q2-border:#BFDBFE;
+  --q3:#F59E0B;--q3-bg:#FFFBEB;--q3-border:#FDE68A;
+  --q4:#6B7280;--q4-bg:#F9FAFB;--q4-border:#E5E7EB;
+  --success:#10B981;--radius:12px;
+  --shadow:0 1px 3px rgba(10,37,64,0.08),0 4px 12px rgba(10,37,64,0.06);
+  --shadow-lg:0 8px 32px rgba(10,37,64,0.14);
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--gray-50);color:var(--gray-800);min-height:100vh;display:flex;flex-direction:column;}
+
+/* HEADER */
+header{background:var(--navy);padding:0 24px;height:60px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,0.2);}
+.logo{display:flex;align-items:center;gap:12px;}
+.logo-icon{width:36px;height:36px;background:var(--navy-mid);border-radius:8px;display:flex;align-items:center;justify-content:center;overflow:hidden;}
+.logo-name{color:white;font-size:15px;font-weight:600;letter-spacing:0.5px;}
+.logo-sub{color:var(--gray-400);font-size:10px;letter-spacing:1px;text-transform:uppercase;margin-top:1px;}
+.header-actions{display:flex;align-items:center;gap:8px;}
+.header-date{color:var(--gray-400);font-size:11px;}
+.header-user{color:var(--gold);font-size:12px;font-weight:600;padding:3px 10px;background:rgba(212,160,23,0.15);border-radius:20px;}
+
+/* NAV */
+nav{background:var(--navy-mid);display:flex;overflow-x:auto;scrollbar-width:none;}
+nav::-webkit-scrollbar{display:none;}
+.nav-btn{padding:12px 16px;color:var(--gray-400);font-size:13px;font-weight:500;border:none;background:none;cursor:pointer;white-space:nowrap;border-bottom:2px solid transparent;transition:all 0.2s;}
+.nav-btn:hover{color:white;}
+.nav-btn.active{color:white;border-bottom-color:var(--gold);}
+
+/* MAIN */
+main{flex:1;padding:24px;max-width:1200px;margin:0 auto;width:100%;}
+.section{display:none;}
+.section.active{display:block;}
+
+/* CARDS */
+.card{background:white;border-radius:var(--radius);box-shadow:var(--shadow);padding:20px;margin-bottom:16px;}
+
+/* STATS */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:20px;}
+.stat-card{background:white;border-radius:var(--radius);box-shadow:var(--shadow);padding:16px 20px;border-left:3px solid var(--accent);}
+.stat-num{font-size:28px;font-weight:700;color:var(--navy);line-height:1;}
+.stat-label{font-size:12px;color:var(--gray-400);margin-top:4px;}
+.stat-card.q1{border-left-color:var(--q1);}
+.stat-card.q2{border-left-color:var(--q2);}
+.stat-card.q3{border-left-color:var(--q3);}
+
+/* UPCOMING */
+.upcoming{background:white;border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;margin-bottom:16px;}
+.upcoming-header{padding:14px 20px;border-bottom:1px solid var(--gray-100);}
+.upcoming-title{font-size:13px;font-weight:600;color:var(--gray-600);text-transform:uppercase;letter-spacing:0.5px;}
+.task-item{padding:12px 20px;border-bottom:1px solid var(--gray-100);display:flex;align-items:center;gap:12px;}
+.task-item:last-child{border-bottom:none;}
+.task-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.task-dot.q1{background:var(--q1);}
+.task-dot.q2{background:var(--q2);}
+.task-dot.q3{background:var(--q3);}
+.task-info{flex:1;}
+.task-name{font-size:14px;color:var(--gray-800);font-weight:500;}
+.task-meta{font-size:12px;color:var(--gray-400);margin-top:2px;}
+.task-date{font-size:12px;font-weight:600;color:var(--navy);}
+.days-badge{font-size:11px;padding:2px 8px;border-radius:20px;font-weight:600;margin-left:8px;}
+.days-badge.urgent{background:var(--q1-bg);color:var(--q1);}
+.days-badge.soon{background:var(--q3-bg);color:#D97706;}
+.days-badge.ok{background:var(--q2-bg);color:var(--q2);}
+
+/* EISENHOWER */
+.matrix-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.quadrant{border-radius:var(--radius);padding:16px;border:1px solid;}
+.quadrant.q1{background:var(--q1-bg);border-color:var(--q1-border);}
+.quadrant.q2{background:var(--q2-bg);border-color:var(--q2-border);}
+.quadrant.q3{background:var(--q3-bg);border-color:var(--q3-border);}
+.quadrant.q4{background:var(--q4-bg);border-color:var(--q4-border);}
+.quadrant-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.quadrant-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;}
+.quadrant.q1 .quadrant-title{color:var(--q1);}
+.quadrant.q2 .quadrant-title{color:var(--q2);}
+.quadrant.q3 .quadrant-title{color:#D97706;}
+.quadrant.q4 .quadrant-title{color:var(--q4);}
+.quadrant-count{font-size:11px;padding:2px 8px;border-radius:20px;font-weight:600;color:white;}
+.quadrant.q1 .quadrant-count{background:var(--q1);}
+.quadrant.q2 .quadrant-count{background:var(--q2);}
+.quadrant.q3 .quadrant-count{background:#F59E0B;}
+.quadrant.q4 .quadrant-count{background:var(--q4);}
+.q-task{background:white;border-radius:8px;padding:10px 12px;margin-bottom:8px;border:1px solid rgba(0,0,0,0.05);}
+.q-task:last-child{margin-bottom:0;}
+.q-task-name{font-size:13px;font-weight:500;color:var(--gray-800);}
+.q-task-meta{font-size:11px;color:var(--gray-400);margin-top:3px;display:flex;align-items:center;gap:8px;}
+.add-task-btn{width:100%;padding:8px;border:1.5px dashed var(--gray-200);border-radius:8px;background:none;color:var(--gray-400);font-size:12px;cursor:pointer;margin-top:8px;transition:all 0.15s;}
+.add-task-btn:hover{border-color:var(--gold);color:var(--gold);}
+
+/* CALENDAR */
+.cal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;}
+.cal-nav{display:flex;align-items:center;gap:12px;}
+.cal-month{font-size:18px;font-weight:600;color:var(--navy);}
+.cal-btn{width:32px;height:32px;border-radius:8px;border:1px solid var(--gray-200);background:white;cursor:pointer;color:var(--gray-600);font-size:16px;}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;background:var(--gray-200);border-radius:var(--radius);overflow:hidden;}
+.cal-day-header{background:var(--navy);color:white;padding:8px 4px;text-align:center;font-size:11px;font-weight:600;}
+.cal-day{background:white;min-height:80px;padding:6px;}
+.cal-day.other-month{background:var(--gray-50);}
+.cal-day.today{background:#EFF6FF;}
+.cal-day-num{font-size:12px;font-weight:600;color:var(--gray-600);margin-bottom:4px;}
+.cal-day.today .cal-day-num{color:var(--accent);font-weight:700;}
+.cal-event{font-size:10px;padding:2px 5px;border-radius:4px;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.cal-event.q1{background:var(--q1-bg);color:var(--q1);font-weight:600;}
+.cal-event.q2{background:var(--q2-bg);color:var(--q2);}
+.cal-event.q3{background:var(--q3-bg);color:#D97706;}
+
+/* CLIENTES */
+.clientes-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+.clientes-title{font-size:18px;font-weight:600;color:var(--navy);}
+.search-bar{display:flex;gap:8px;margin-bottom:16px;}
+.search-input{flex:1;padding:10px 14px;border:1.5px solid var(--gray-200);border-radius:8px;font-size:14px;outline:none;font-family:inherit;}
+.search-input:focus{border-color:var(--gold);}
+.filter-tabs{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;}
+.filter-tab{padding:6px 14px;border-radius:20px;font-size:12px;font-weight:500;border:1.5px solid var(--gray-200);background:white;cursor:pointer;transition:all 0.15s;}
+.filter-tab.active{background:var(--navy);color:white;border-color:var(--navy);}
+.cliente-card{background:white;border-radius:var(--radius);box-shadow:var(--shadow);padding:14px 18px;margin-bottom:10px;display:flex;align-items:center;gap:14px;cursor:pointer;transition:all 0.15s;border:1px solid transparent;}
+.cliente-card:hover{border-color:var(--gold);}
+.cliente-card.compartido{border-left:3px solid var(--gold);}
+.cliente-avatar{width:42px;height:42px;border-radius:10px;background:var(--navy);display:flex;align-items:center;justify-content:center;color:white;font-size:15px;font-weight:700;flex-shrink:0;}
+.cliente-info{flex:1;}
+.cliente-nombre{font-size:14px;font-weight:600;color:var(--gray-800);}
+.cliente-nif{font-size:12px;color:var(--gray-400);margin-top:1px;}
+.cliente-badges{display:flex;gap:5px;margin-top:5px;flex-wrap:wrap;}
+.badge{font-size:11px;padding:2px 8px;border-radius:20px;font-weight:500;}
+.badge-compartido{background:rgba(212,160,23,0.15);color:var(--gold);border:1px solid rgba(212,160,23,0.3);}
+.badge-tipo{background:var(--gray-100);color:var(--gray-600);}
+.cliente-tareas{text-align:right;flex-shrink:0;}
+.cliente-tareas-num{font-size:20px;font-weight:700;color:var(--navy);}
+.cliente-tareas-label{font-size:11px;color:var(--gray-400);}
+
+/* FICHA */
+.ficha-back{display:flex;align-items:center;gap:8px;color:var(--gold);font-size:14px;font-weight:500;cursor:pointer;margin-bottom:20px;background:none;border:none;padding:0;}
+.ficha-header{background:var(--navy);border-radius:var(--radius);padding:24px;margin-bottom:16px;color:white;}
+.ficha-avatar{width:52px;height:52px;border-radius:10px;background:var(--navy-mid);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;margin-bottom:10px;}
+.ficha-nombre{font-size:20px;font-weight:700;margin-bottom:2px;}
+.ficha-nif{font-size:13px;color:var(--gray-400);}
+.ficha-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px;}
+.ficha-dato{background:var(--navy-mid);border-radius:8px;padding:10px 14px;}
+.ficha-dato-label{font-size:10px;color:var(--gray-400);text-transform:uppercase;letter-spacing:0.5px;}
+.ficha-dato-val{font-size:14px;color:white;margin-top:2px;font-weight:500;}
+.ficha-section{background:white;border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:12px;overflow:hidden;}
+.ficha-section-header{padding:14px 18px;border-bottom:1px solid var(--gray-100);display:flex;align-items:center;justify-content:space-between;}
+.ficha-section-title{font-size:13px;font-weight:600;color:var(--gray-600);text-transform:uppercase;letter-spacing:0.5px;}
+.ficha-task-item{padding:12px 18px;border-bottom:1px solid var(--gray-100);display:flex;align-items:center;gap:10px;}
+.ficha-task-item:last-child{border-bottom:none;}
+.nota-item{padding:12px 18px;border-bottom:1px solid var(--gray-100);}
+.nota-item:last-child{border-bottom:none;}
+.nota-texto{font-size:14px;color:var(--gray-800);line-height:1.5;}
+.nota-fecha{font-size:11px;color:var(--gray-400);margin-top:4px;}
+.nota-input{flex:1;padding:8px 12px;border:1.5px solid var(--gray-200);border-radius:8px;font-size:13px;font-family:inherit;resize:none;outline:none;}
+.nota-input:focus{border-color:var(--gold);}
+.nota-input-row{padding:12px 18px;display:flex;gap:8px;}
+.doc-item{padding:12px 18px;border-bottom:1px solid var(--gray-100);display:flex;align-items:center;gap:10px;}
+.doc-item:last-child{border-bottom:none;}
+.doc-icon{width:32px;height:32px;background:var(--q1-bg);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
+.doc-info{flex:1;}
+.doc-nombre{font-size:13px;font-weight:500;color:var(--gray-800);}
+.doc-fecha{font-size:11px;color:var(--gray-400);margin-top:2px;}
+
+/* PROSPECTOS */
+.prospecto-card{background:white;border-radius:var(--radius);box-shadow:var(--shadow);padding:16px 20px;margin-bottom:10px;border-left:3px solid #8B5CF6;}
+
+/* MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(10,37,64,0.5);z-index:200;align-items:center;justify-content:center;padding:20px;}
+.modal-overlay.open{display:flex;}
+.modal{background:white;border-radius:16px;padding:24px;width:100%;max-width:480px;box-shadow:var(--shadow-lg);max-height:90vh;overflow-y:auto;}
+.modal-title{font-size:16px;font-weight:600;color:var(--navy);margin-bottom:20px;}
+.form-group{margin-bottom:14px;}
+.form-label{font-size:12px;font-weight:600;color:var(--gray-600);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;display:block;}
+.form-input{width:100%;padding:10px 12px;border:1.5px solid var(--gray-200);border-radius:8px;font-size:14px;color:var(--gray-800);outline:none;font-family:inherit;}
+.form-input:focus{border-color:var(--gold);}
+.form-select{width:100%;padding:10px 12px;border:1.5px solid var(--gray-200);border-radius:8px;font-size:14px;color:var(--gray-800);outline:none;background:white;font-family:inherit;}
+.form-select:focus{border-color:var(--gold);}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:20px;}
+.btn{padding:10px 20px;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;border:none;transition:all 0.15s;font-family:inherit;}
+.btn-primary{background:var(--navy);color:white;}
+.btn-primary:hover{background:var(--navy-light);}
+.btn-secondary{background:var(--gray-100);color:var(--gray-600);}
+.btn-sm{padding:6px 12px;font-size:12px;border-radius:6px;}
+.btn-danger{background:#FEF2F2;color:var(--q1);}
+.btn-danger:hover{background:var(--q1);color:white;}
+.btn-gold{background:rgba(212,160,23,0.1);color:var(--gold);border:1px solid rgba(212,160,23,0.3);}
+
+/* FAB */
+.fab{position:fixed;bottom:24px;right:24px;width:52px;height:52px;border-radius:50%;background:var(--navy);color:white;border:none;font-size:24px;cursor:pointer;box-shadow:var(--shadow-lg);display:flex;align-items:center;justify-content:center;z-index:99;}
+.fab:hover{background:var(--gold);}
+
+/* MISC */
+.empty{text-align:center;padding:32px 20px;color:var(--gray-400);}
+.empty-icon{font-size:28px;margin-bottom:8px;}
+.empty-text{font-size:13px;}
+.icon-btn{background:none;border:none;cursor:pointer;padding:4px;color:var(--gray-400);font-size:15px;border-radius:4px;}
+.icon-btn:hover{color:var(--gray-800);background:var(--gray-100);}
+
+/* LOGIN */
+#loginScreen{display:none;position:fixed;inset:0;background:var(--navy);z-index:1000;align-items:center;justify-content:center;flex-direction:column;gap:24px;}
+
+@media(max-width:600px){
+  main{padding:12px;}
+  .matrix-grid{grid-template-columns:1fr;}
+  .stats-grid{grid-template-columns:1fr 1fr;}
+  .ficha-grid{grid-template-columns:1fr;}
+  .form-row{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="loginScreen" style="display:none;position:fixed;inset:0;background:var(--navy);z-index:1000;align-items:center;justify-content:center;flex-direction:column;gap:20px;">
+  <div style="text-align:center;margin-bottom:8px;">
+    <div style="width:80px;height:80px;background:var(--navy-mid);border-radius:18px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;">
+      <svg viewBox="0 0 80 80" width="80" height="80">
+        <text x="8" y="56" font-family="Georgia,serif" font-size="52" font-weight="700" fill="#D4A017" opacity="0.95">C</text>
+        <text x="36" y="56" font-family="Georgia,serif" font-size="52" font-weight="700" fill="#D4A017" opacity="0.60">C</text>
+      </svg>
+    </div>
+    <div style="color:white;font-size:22px;font-weight:600;">Catan Consulting</div>
+    <div style="color:var(--gray-400);font-size:11px;letter-spacing:1px;text-transform:uppercase;margin-top:4px;">Asesoría integral</div>
+  </div>
+  <div style="background:white;border-radius:16px;padding:28px 32px;width:100%;max-width:360px;box-shadow:var(--shadow-lg);">
+    <div style="font-size:16px;font-weight:600;color:var(--navy);margin-bottom:20px;text-align:center;">Acceder</div>
+    <div style="margin-bottom:14px;">
+      <label style="font-size:12px;font-weight:600;color:#4A5A6B;text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:6px;">Email</label>
+      <input type="email" id="loginEmail" placeholder="tu@email.com" style="width:100%;padding:10px 12px;border:1.5px solid #D6DEE8;border-radius:8px;font-size:14px;outline:none;font-family:inherit;">
+    </div>
+    <div style="margin-bottom:16px;">
+      <label style="font-size:12px;font-weight:600;color:#4A5A6B;text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:6px;">Contraseña</label>
+      <input type="password" id="loginPassword" placeholder="••••••••" style="width:100%;padding:10px 12px;border:1.5px solid #D6DEE8;border-radius:8px;font-size:14px;outline:none;font-family:inherit;">
+    </div>
+    <div id="loginError" style="color:#EF4444;font-size:13px;margin-bottom:12px;display:none;text-align:center;">Email o contraseña incorrectos</div>
+    <button onclick="doLogin()" style="width:100%;padding:12px;background:#0A2540;color:white;border:none;border-radius:8px;font-size:15px;font-weight:500;cursor:pointer;font-family:inherit;">Entrar</button>
+    <div id="biometricSection" style="display:none;margin-top:12px;">
+      <div style="display:flex;align-items:center;gap:8px;margin:12px 0;"><div style="flex:1;height:1px;background:#D6DEE8;"></div><span style="font-size:12px;color:#8A9BB0;">o</span><div style="flex:1;height:1px;background:#D6DEE8;"></div></div>
+      <button onclick="loginConHuella()" style="width:100%;padding:12px;background:#FFF9E6;color:#D4A017;border:1.5px solid #F0C040;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;font-family:inherit;">👆 Entrar con huella dactilar</button>
+    </div>
+    <div id="biometricSetupSection" style="display:none;margin-top:10px;">
+      <button onclick="activarHuella()" style="width:100%;padding:10px;background:#F0FDF4;color:#059669;border:1.5px solid #BBF7D0;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;">👆 Activar acceso con huella dactilar</button>
+    </div>
+  </div>
+</div>
+
+<div id="appContent" style="display:none;flex-direction:column;min-height:100vh;">
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">
+      <svg viewBox="0 0 36 36" fill="none" width="36" height="36">
+        <text x="1" y="26" font-family="Georgia,serif" font-size="22" font-weight="700" fill="#D4A017" opacity="0.95">C</text>
+        <text x="17" y="26" font-family="Georgia,serif" font-size="22" font-weight="700" fill="#D4A017" opacity="0.60">C</text>
+      </svg>
+    </div>
+    <div>
+      <div class="logo-name">Catan Consulting</div>
+      <div class="logo-sub">Asesoría integral</div>
+    </div>
+  </div>
+  <div class="header-actions">
+    <div class="header-date" id="headerDate"></div>
+    <span id="userNameBadge" class="header-user"></span>
+    <button id="btnHuella" onclick="gestionarHuella()" style="background:rgba(255,255,255,0.1);color:#8A9BB0;border:none;border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer;" title="Huella dactilar">👆</button>
+    <button onclick="doLogout()" style="background:rgba(255,255,255,0.1);color:#8A9BB0;border:none;border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer;">Salir</button>
+  </div>
+</header>
+
+<nav>
+  <button class="nav-btn active" onclick="showSection('dashboard',this)">⊞ Inicio</button>
+  <button class="nav-btn" onclick="showSection('eisenhower',this)" id="navTareas">⊕ Tareas <span id="badgeTareas" style="display:none;background:#EF4444;color:white;border-radius:20px;font-size:10px;padding:1px 6px;font-weight:700;margin-left:2px;"></span></button>
+  <button class="nav-btn" onclick="showSection('calendar',this)">▦ Calendario</button>
+  <button class="nav-btn" onclick="showSection('clientes',this)">◉ Clientes</button>
+  <button class="nav-btn" onclick="showSection('prospectos',this)" id="navProspectos">◎ Prospectos <span id="badgeProspectos" style="display:none;background:#F59E0B;color:white;border-radius:20px;font-size:10px;padding:1px 6px;font-weight:700;margin-left:2px;"></span></button>
+</nav>
+
+<main>
+
+<!-- DASHBOARD -->
+<div id="dashboard" class="section active">
+  <div class="stats-grid">
+    <div class="stat-card q1"><div class="stat-num" id="statQ1">0</div><div class="stat-label">Urgentes</div></div>
+    <div class="stat-card q2"><div class="stat-num" id="statQ2">0</div><div class="stat-label">Planificadas</div></div>
+    <div class="stat-card q3"><div class="stat-num" id="statQ3">0</div><div class="stat-label">A delegar</div></div>
+    <div class="stat-card" style="border-left-color:var(--success)"><div class="stat-num" id="statDone">0</div><div class="stat-label">Completadas</div></div>
+  </div>
+  <div id="alertasPanel" style="display:none;background:#FEF2F2;border:1px solid #FECACA;border-radius:var(--radius);padding:14px 18px;margin-bottom:16px;">
+    <div style="font-size:13px;font-weight:600;color:#EF4444;margin-bottom:8px;">🔴 Alertas urgentes</div>
+    <div id="alertasList"></div>
+  </div>
+  <div class="upcoming">
+    <div class="upcoming-header"><span class="upcoming-title">Próximos vencimientos</span></div>
+    <div id="upcomingList"><div class="empty"><div class="empty-icon">📋</div><div class="empty-text">No hay tareas con fecha próxima</div></div></div>
+  </div>
+</div>
+
+<!-- EISENHOWER -->
+<div id="eisenhower" class="section">
+  <div class="matrix-grid">
+    <div class="quadrant q1">
+      <div class="quadrant-header"><span class="quadrant-title">🔴 Importante + urgente</span><span class="quadrant-count" id="countQ1">0</span></div>
+      <div id="listQ1"><div class="empty" style="padding:16px 0;font-size:12px;">Sin tareas</div></div>
+      <button class="add-task-btn" onclick="openTaskModal('Q1 Importante + urgente')">+ Añadir tarea</button>
+    </div>
+    <div class="quadrant q2">
+      <div class="quadrant-header"><span class="quadrant-title">🔵 Importante, no urgente</span><span class="quadrant-count" id="countQ2">0</span></div>
+      <div id="listQ2"><div class="empty" style="padding:16px 0;font-size:12px;">Sin tareas</div></div>
+      <button class="add-task-btn" onclick="openTaskModal('Q2 Importante no urgente')">+ Añadir tarea</button>
+    </div>
+    <div class="quadrant q3">
+      <div class="quadrant-header"><span class="quadrant-title">🟡 Urgente, no importante</span><span class="quadrant-count" id="countQ3">0</span></div>
+      <div id="listQ3"><div class="empty" style="padding:16px 0;font-size:12px;">Sin tareas</div></div>
+      <button class="add-task-btn" onclick="openTaskModal('Q3 Urgente no importante')">+ Añadir tarea</button>
+    </div>
+    <div class="quadrant q4">
+      <div class="quadrant-header"><span class="quadrant-title">⚪ Ni importante ni urgente</span><span class="quadrant-count" id="countQ4">0</span></div>
+      <div id="listQ4"><div class="empty" style="padding:16px 0;font-size:12px;">Sin tareas</div></div>
+      <button class="add-task-btn" onclick="openTaskModal('Q4 Ni importante ni urgente')">+ Añadir tarea</button>
+    </div>
+  </div>
+</div>
+
+<!-- CALENDAR -->
+<div id="calendar" class="section">
+  <div class="card">
+    <div class="cal-header">
+      <div class="cal-nav">
+        <button class="cal-btn" onclick="changeMonth(-1)">‹</button>
+        <span class="cal-month" id="calMonth"></span>
+        <button class="cal-btn" onclick="changeMonth(1)">›</button>
+      </div>
+    </div>
+    <div class="cal-grid" id="calGrid">
+      <div class="cal-day-header">LUN</div><div class="cal-day-header">MAR</div>
+      <div class="cal-day-header">MIÉ</div><div class="cal-day-header">JUE</div>
+      <div class="cal-day-header">VIE</div><div class="cal-day-header">SÁB</div>
+      <div class="cal-day-header">DOM</div>
+    </div>
+  </div>
+</div>
+
+<!-- CLIENTES -->
+<div id="clientes" class="section">
+  <div id="clientesLista">
+    <div class="clientes-header">
+      <span class="clientes-title">Clientes</span>
+      <button class="btn btn-primary btn-sm" onclick="openClienteModal()">+ Nuevo cliente</button>
+    </div>
+    <div class="search-bar">
+      <input type="text" class="search-input" placeholder="Buscar cliente..." oninput="filterClientes(this.value)">
+    </div>
+    <div class="filter-tabs">
+      <button class="filter-tab active" onclick="setFiltroClientes('todos',this)">Todos</button>
+      <button class="filter-tab" onclick="setFiltroClientes('mios',this)">Mis clientes</button>
+      <button class="filter-tab" onclick="setFiltroClientes('compartidos',this)">Compartidos</button>
+    </div>
+    <div id="clientesList"></div>
+  </div>
+  <div id="clienteFicha" style="display:none;"></div>
+</div>
+
+<!-- PROSPECTOS -->
+<div id="prospectos" class="section">
+  <div class="clientes-header" style="margin-bottom:16px;">
+    <span class="clientes-title">Prospectos y agenda</span>
+    <button class="btn btn-primary btn-sm" onclick="openProspectoModal()">+ Nuevo</button>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
+    <div class="stat-card" style="border-left-color:#8B5CF6;"><div class="stat-num" id="statProspectos">0</div><div class="stat-label">Prospectos</div></div>
+    <div class="stat-card" style="border-left-color:#F59E0B;"><div class="stat-num" id="statLlamadas">0</div><div class="stat-label">Llamadas pendientes</div></div>
+  </div>
+  <div id="prospectosList"><div class="empty"><div class="empty-icon">◎</div><div class="empty-text">Sin prospectos.</div></div></div>
+</div>
+
+</main>
+</div>
+
+<!-- MODAL TAREA -->
+<div class="modal-overlay" id="taskModalOverlay" onclick="closeModalOutside(event,'taskModalOverlay')">
+  <div class="modal">
+    <div class="modal-title">Nueva tarea</div>
+    <div class="form-group"><label class="form-label">Tarea</label><input type="text" class="form-input" id="tNombre" placeholder="Descripción de la tarea"></div>
+    <div class="form-group"><label class="form-label">Cliente</label><input type="text" class="form-input" id="tCliente" placeholder="Nombre del cliente"></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Cuadrante</label>
+        <select class="form-select" id="tCuadrante">
+          <option value="Q1 Importante + urgente">🔴 Q1 — Importante + urgente</option>
+          <option value="Q2 Importante no urgente">🔵 Q2 — Importante, no urgente</option>
+          <option value="Q3 Urgente no importante">🟡 Q3 — Urgente, no importante</option>
+          <option value="Q4 Ni importante ni urgente">⚪ Q4 — Ni importante ni urgente</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Departamento</label>
+        <select class="form-select" id="tArea">
+          <option>Fiscal</option><option>Contable</option><option>Laboral</option>
+          <option>Jurídico</option><option>Compra-venta</option><option>Suministros</option><option>Seguros</option><option>Interno</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group"><label class="form-label">Fecha límite</label><input type="date" class="form-input" id="tFecha"></div>
+    <div class="form-group"><label class="form-label">Notas</label><input type="text" class="form-input" id="tNotas" placeholder="Observaciones opcionales"></div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal('taskModalOverlay')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveTask()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CLIENTE -->
+<div class="modal-overlay" id="clienteModalOverlay" onclick="closeModalOutside(event,'clienteModalOverlay')">
+  <div class="modal">
+    <div class="modal-title" id="clienteModalTitle">Nuevo cliente</div>
+    <input type="hidden" id="cId">
+    <div class="form-group"><label class="form-label">Nombre / Razón social *</label><input type="text" class="form-input" id="cNombre" placeholder="Ej: García López S.L."></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">NIF / CIF</label><input type="text" class="form-input" id="cNif" placeholder="B12345678"></div>
+      <div class="form-group"><label class="form-label">Tipo</label>
+        <select class="form-select" id="cTipo"><option>Sociedad</option><option>Autónomo</option><option>Particular</option></select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Teléfono</label><input type="text" class="form-input" id="cTel" placeholder="600 000 000"></div>
+      <div class="form-group"><label class="form-label">Email</label><input type="email" class="form-input" id="cEmail" placeholder="correo@ejemplo.com"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Régimen IVA</label>
+        <select class="form-select" id="cIva"><option>General</option><option>Simplificado</option><option>Exento</option></select>
+      </div>
+      <div class="form-group"><label class="form-label">Departamentos</label>
+        <select class="form-select" id="cServicios">
+          <option>Fiscal</option><option>Contable</option><option>Laboral</option>
+          <option>Jurídico</option><option>Compra-venta</option><option>Suministros</option><option>Seguros</option>
+          <option>Fiscal | Contable</option><option>Fiscal | Laboral</option>
+          <option>Fiscal | Contable | Laboral</option><option>Todos</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Visibilidad</label>
+      <select class="form-select" id="cVisibilidad">
+        <option value="privado">🔒 Privado — solo yo</option>
+        <option value="compartido">🌐 Compartido — Emilio y Manuel</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal('clienteModalOverlay')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveCliente()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PROSPECTO -->
+<div class="modal-overlay" id="prospectoModalOverlay" onclick="closeModalOutside(event,'prospectoModalOverlay')">
+  <div class="modal">
+    <div class="modal-title" id="prospectoModalTitle">Nuevo prospecto</div>
+    <input type="hidden" id="pId">
+    <div class="form-group"><label class="form-label">Nombre / Empresa</label><input type="text" class="form-input" id="pNombre" placeholder="Ej: Juan García"></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Teléfono</label><input type="text" class="form-input" id="pTel" placeholder="600 000 000"></div>
+      <div class="form-group"><label class="form-label">Email</label><input type="email" class="form-input" id="pEmail" placeholder="correo@ejemplo.com"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Tipo</label>
+        <select class="form-select" id="pTipo">
+          <option>Prospecto</option><option>Llamada pendiente</option><option>Reunión pendiente</option>
+          <option>Nota personal</option><option>Tarea propia</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Fecha seguimiento</label><input type="date" class="form-input" id="pFecha"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Notas</label><textarea class="form-input" id="pNotas" rows="3" placeholder="Descripción, servicios de interés..."></textarea></div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal('prospectoModalOverlay')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveProspecto()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<button class="fab" id="fabBtn" onclick="onFab()">+</button>
+
+<!-- FIREBASE -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+  import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyCVK3yF15Udps1l046kv6M1TASIwVEPcVs",
+    authDomain: "duraspinvest.firebaseapp.com",
+    projectId: "duraspinvest",
+    storageBucket: "duraspinvest.firebasestorage.app",
+    messagingSenderId: "280764832749",
+    appId: "1:280764832749:web:a1fa6c44cf59518541a5e4"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  const auth = getAuth(app);
+
+  window.db = db;
+  window.auth = auth;
+  window.fsSignIn = signInWithEmailAndPassword;
+  window.fsSignOut = signOut;
+  window.fsDoc = doc;
+  window.fsSetDoc = setDoc;
+  window.fsDeleteDoc = deleteDoc;
+  window.fsCollection = collection;
+
+  let unsubTasks, unsubClients, unsubProspectos;
+
+  function activarListeners(uid) {
+    // Tareas: el usuario ve las suyas propias
+    unsubTasks = onSnapshot(collection(db, 'cc_tasks'), (snap) => {
+      window.tasks = snap.docs
+        .map(d => ({...d.data(), id: d.id}))
+        .filter(t => t.owner === uid);
+      if(typeof renderDashboard === 'function') renderDashboard();
+      if(typeof renderEisenhower === 'function') renderEisenhower();
+    });
+
+    // Clientes: privados del usuario + compartidos
+    unsubClients = onSnapshot(collection(db, 'cc_clients'), (snap) => {
+      window.clients = snap.docs
+        .map(d => ({...d.data(), id: d.id}))
+        .filter(c => c.owner === uid || c.visibilidad === 'compartido');
+      if(typeof renderClientesList === 'function') renderClientesList();
+    });
+
+    // Prospectos: solo los suyos
+    unsubProspectos = onSnapshot(collection(db, 'cc_prospectos'), (snap) => {
+      window.prospectos = snap.docs
+        .map(d => ({...d.data(), id: d.id}))
+        .filter(p => p.owner === uid);
+      if(typeof renderProspectos === 'function') renderProspectos();
+    });
+  }
+
+  function desactivarListeners() {
+    if(unsubTasks) unsubTasks();
+    if(unsubClients) unsubClients();
+    if(unsubProspectos) unsubProspectos();
+  }
+
+  onAuthStateChanged(auth, (user) => {
+    if (user) {
+      window.currentUser = user;
+      window.currentUid = user.uid;
+      window.tasks = [];
+      window.clients = [];
+      window.prospectos = [];
+
+      document.getElementById('loginScreen').style.display = 'none';
+      document.getElementById('appContent').style.display = 'flex';
+
+      // Mostrar nombre del usuario
+      const email = user.email || '';
+      const name = email.includes('emilio') || email.includes('edg') ? 'Emilio' : 'Manuel';
+      window.currentUserName = name;
+      const badge = document.getElementById('userNameBadge');
+      if(badge) badge.textContent = name;
+
+      activarListeners(user.uid);
+      if(typeof renderDashboard === 'function') renderDashboard();
+    } else {
+      window.currentUser = null;
+      window.currentUid = null;
+      window.currentUserName = null;
+      desactivarListeners();
+      document.getElementById('loginScreen').style.display = 'flex';
+      document.getElementById('appContent').style.display = 'none';
+    }
+  });
+</script>
+
+<script>
+// Variables globales
+window.tasks = window.tasks || [];
+window.clients = window.clients || [];
+window.prospectos = window.prospectos || [];
+window.currentUid = null;
+window.currentUserName = null;
+let calYear, calMonth, currentSection = 'dashboard';
+let filtroClientes = 'todos';
+
+// ── Navegación ───────────────────────────────────────────────────────────────
+
+function showSection(id, btn) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  if(btn) btn.classList.add('active');
+  currentSection = id;
+  if(id === 'calendar') renderCalendar();
+  else if(id === 'eisenhower') renderEisenhower();
+  else if(id === 'dashboard') renderDashboard();
+  else if(id === 'clientes') { showClientesList(); renderClientesList(); }
+  else if(id === 'prospectos') renderProspectos();
+}
+
+function onFab() {
+  if(currentSection === 'clientes') openClienteModal();
+  else if(currentSection === 'prospectos') openProspectoModal();
+  else openTaskModal('');
+}
+
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function closeModalOutside(e, id) { if(e.target === document.getElementById(id)) closeModal(id); }
+
+// ── Firebase helpers ─────────────────────────────────────────────────────────
+
+async function fbSet(col, id, data) {
+  if(!window.db) return;
+  try { await window.fsSetDoc(window.fsDoc(window.db, col, String(id)), data); }
+  catch(e) { console.error('fbSet:', e); }
+}
+
+async function fbDelete(col, id) {
+  if(!window.db) return;
+  try { await window.fsDeleteDoc(window.fsDoc(window.db, col, String(id))); }
+  catch(e) { console.error('fbDelete:', e); }
+}
+
+// ── Tareas ───────────────────────────────────────────────────────────────────
+
+function openTaskModal(q) {
+  document.getElementById('tNombre').value = '';
+  document.getElementById('tCliente').value = '';
+  document.getElementById('tNotas').value = '';
+  document.getElementById('tFecha').value = '';
+  if(q) document.getElementById('tCuadrante').value = q;
+  document.getElementById('taskModalOverlay').classList.add('open');
+  document.getElementById('tNombre').focus();
+}
+
+function openTaskModalForClient(nombre) {
+  openTaskModal('Q1 Importante + urgente');
+  document.getElementById('tCliente').value = nombre;
+}
+
+async function saveTask() {
+  const nombre = document.getElementById('tNombre').value.trim();
+  if(!nombre) return document.getElementById('tNombre').focus();
+  const task = {
+    id: String(Date.now()),
+    nombre,
+    cliente: document.getElementById('tCliente').value.trim(),
+    cuadrante: document.getElementById('tCuadrante').value,
+    area: document.getElementById('tArea').value,
+    fecha: document.getElementById('tFecha').value,
+    notas: document.getElementById('tNotas').value.trim(),
+    estado: 'Pendiente',
+    owner: window.currentUid,
+    ownerName: window.currentUserName,
+    creado: new Date().toISOString()
+  };
+  await fbSet('cc_tasks', task.id, task);
+  closeModal('taskModalOverlay');
+}
+
+async function deleteTask(id) { await fbDelete('cc_tasks', id); }
+
+async function completeTask(id) {
+  const t = (window.tasks || []).find(t => String(t.id) === String(id));
+  if(t) {
+    t.estado = t.estado === 'Completada' ? 'Pendiente' : 'Completada';
+    await fbSet('cc_tasks', id, t);
+  }
+}
+
+// ── Clientes ─────────────────────────────────────────────────────────────────
+
+function openClienteModal(id) {
+  document.getElementById('clienteModalTitle').textContent = id ? 'Editar cliente' : 'Nuevo cliente';
+  document.getElementById('cId').value = id || '';
+  if(id) {
+    const c = (window.clients || []).find(x => String(x.id) === String(id)) || {};
+    document.getElementById('cNombre').value = c.nombre || '';
+    document.getElementById('cNif').value = c.nif || '';
+    document.getElementById('cTipo').value = c.tipo || 'Sociedad';
+    document.getElementById('cTel').value = c.tel || '';
+    document.getElementById('cEmail').value = c.email || '';
+    document.getElementById('cIva').value = c.iva || 'General';
+    document.getElementById('cServicios').value = c.servicios || 'Fiscal';
+    document.getElementById('cVisibilidad').value = c.visibilidad || 'privado';
+  } else {
+    ['cNombre','cNif','cTel','cEmail'].forEach(f => document.getElementById(f).value = '');
+    document.getElementById('cTipo').value = 'Sociedad';
+    document.getElementById('cIva').value = 'General';
+    document.getElementById('cServicios').value = 'Fiscal';
+    document.getElementById('cVisibilidad').value = 'privado';
+  }
+  document.getElementById('clienteModalOverlay').classList.add('open');
+  document.getElementById('cNombre').focus();
+}
+
+async function saveCliente() {
+  const nombre = document.getElementById('cNombre').value.trim();
+  if(!nombre) return document.getElementById('cNombre').focus();
+  const id = document.getElementById('cId').value;
+  const existing = id ? (window.clients || []).find(x => String(x.id) === String(id)) : null;
+  const c = {
+    id: id || String(Date.now()),
+    nombre,
+    nif: document.getElementById('cNif').value.trim(),
+    tipo: document.getElementById('cTipo').value,
+    tel: document.getElementById('cTel').value.trim(),
+    email: document.getElementById('cEmail').value.trim(),
+    iva: document.getElementById('cIva').value,
+    servicios: document.getElementById('cServicios').value,
+    visibilidad: document.getElementById('cVisibilidad').value,
+    owner: window.currentUid,
+    ownerName: window.currentUserName,
+    notas: existing ? (existing.notas || []) : [],
+    docs: existing ? (existing.docs || []) : []
+  };
+  await fbSet('cc_clients', c.id, c);
+  closeModal('clienteModalOverlay');
+}
+
+async function deleteCliente(id) {
+  if(!confirm('¿Eliminar este cliente?')) return;
+  await fbDelete('cc_clients', id);
+  showClientesList();
+  renderClientesList();
+}
+
+async function addNota(cid) {
+  const inp = document.getElementById('notaInput_' + cid);
+  const texto = inp.value.trim();
+  if(!texto) return;
+  const c = (window.clients || []).find(x => String(x.id) === String(cid));
+  if(!c) return;
+  if(!c.notas) c.notas = [];
+  c.notas.unshift({ texto, autor: window.currentUserName, fecha: new Date().toISOString() });
+  await fbSet('cc_clients', cid, c);
+  inp.value = '';
+  showFicha(cid);
+}
+
+async function deleteNota(cid, idx) {
+  const c = (window.clients || []).find(x => String(x.id) === String(cid));
+  if(!c) return;
+  c.notas.splice(idx, 1);
+  await fbSet('cc_clients', cid, c);
+  showFicha(cid);
+}
+
+async function addDoc(cid) {
+  const inpNombre = document.getElementById('docNombre_' + cid);
+  const inpUrl = document.getElementById('docUrl_' + cid);
+  const nombre = inpNombre.value.trim();
+  if(!nombre) return;
+  const c = (window.clients || []).find(x => String(x.id) === String(cid));
+  if(!c) return;
+  if(!c.docs) c.docs = [];
+  c.docs.unshift({
+    nombre,
+    url: inpUrl.value.trim(),
+    owner: window.currentUid,
+    ownerName: window.currentUserName,
+    fecha: new Date().toISOString()
+  });
+  await fbSet('cc_clients', cid, c);
+  inpNombre.value = '';
+  inpUrl.value = '';
+  showFicha(cid);
+}
+
+async function deleteDoc(cid, idx) {
+  const c = (window.clients || []).find(x => String(x.id) === String(cid));
+  if(!c) return;
+  c.docs.splice(idx, 1);
+  await fbSet('cc_clients', cid, c);
+  showFicha(cid);
+}
+
+// ── Prospectos ───────────────────────────────────────────────────────────────
+
+function openProspectoModal(id) {
+  document.getElementById('prospectoModalTitle').textContent = id ? 'Editar' : 'Nuevo prospecto';
+  document.getElementById('pId').value = id || '';
+  if(id) {
+    const p = (window.prospectos || []).find(x => String(x.id) === String(id)) || {};
+    document.getElementById('pNombre').value = p.nombre || '';
+    document.getElementById('pTel').value = p.tel || '';
+    document.getElementById('pEmail').value = p.email || '';
+    document.getElementById('pTipo').value = p.tipo || 'Prospecto';
+    document.getElementById('pFecha').value = p.fecha || '';
+    document.getElementById('pNotas').value = p.notas || '';
+  } else {
+    ['pNombre','pTel','pEmail','pNotas'].forEach(f => document.getElementById(f).value = '');
+    document.getElementById('pTipo').value = 'Prospecto';
+    document.getElementById('pFecha').value = '';
+  }
+  document.getElementById('prospectoModalOverlay').classList.add('open');
+  document.getElementById('pNombre').focus();
+}
+
+async function saveProspecto() {
+  const nombre = document.getElementById('pNombre').value.trim();
+  if(!nombre) return document.getElementById('pNombre').focus();
+  const id = document.getElementById('pId').value;
+  const p = {
+    id: id || String(Date.now()),
+    nombre,
+    tel: document.getElementById('pTel').value.trim(),
+    email: document.getElementById('pEmail').value.trim(),
+    tipo: document.getElementById('pTipo').value,
+    fecha: document.getElementById('pFecha').value,
+    notas: document.getElementById('pNotas').value.trim(),
+    owner: window.currentUid,
+    ownerName: window.currentUserName,
+    creado: new Date().toISOString()
+  };
+  await fbSet('cc_prospectos', p.id, p);
+  closeModal('prospectoModalOverlay');
+}
+
+async function deleteProspecto(id) {
+  if(!confirm('¿Eliminar este registro?')) return;
+  await fbDelete('cc_prospectos', id);
+}
+
+// ── Renderizado ──────────────────────────────────────────────────────────────
+
+function qClass(q) {
+  if((q||'').includes('Q1')) return 'q1';
+  if((q||'').includes('Q2')) return 'q2';
+  if((q||'').includes('Q3')) return 'q3';
+  return 'q4';
+}
+
+function daysUntil(d) {
+  if(!d) return null;
+  const a = new Date(d), b = new Date();
+  a.setHours(0,0,0,0); b.setHours(0,0,0,0);
+  return Math.round((a - b) / 86400000);
+}
+
+function initials(n) {
+  return (n||'').split(' ').slice(0,2).map(w => w[0]).join('').toUpperCase();
+}
+
+function renderDashboard() {
+  const allTasks = window.tasks || [];
+  const p = allTasks.filter(t => t.estado !== 'Completada');
+  const set = (id, val) => { const el = document.getElementById(id); if(el) el.textContent = val; };
+  set('statQ1', p.filter(t => (t.cuadrante||'').includes('Q1')).length);
+  set('statQ2', p.filter(t => (t.cuadrante||'').includes('Q2')).length);
+  set('statQ3', p.filter(t => (t.cuadrante||'').includes('Q3')).length);
+  set('statDone', allTasks.filter(t => t.estado === 'Completada').length);
+  const ul = document.getElementById('upcomingList');
+  if(!ul) return;
+  const wd = p.filter(t => t.fecha).sort((a,b) => new Date(a.fecha) - new Date(b.fecha)).slice(0, 8);
+  if(!wd.length) {
+    ul.innerHTML = '<div class="empty"><div class="empty-icon">📋</div><div class="empty-text">No hay tareas con fecha próxima</div></div>';
+  } else {
+    ul.innerHTML = wd.map(t => {
+      const days = daysUntil(t.fecha);
+      const dc = days <= 2 ? 'urgent' : days <= 7 ? 'soon' : 'ok';
+      const dt = days < 0 ? `Venció hace ${Math.abs(days)}d` : days === 0 ? 'Hoy' : days === 1 ? 'Mañana' : `${days} días`;
+      const ds = t.fecha ? new Date(t.fecha+'T12:00:00').toLocaleDateString('es-ES',{day:'2-digit',month:'short'}) : '';
+      return `<div class="task-item"><div class="task-dot ${qClass(t.cuadrante)}"></div><div class="task-info"><div class="task-name">${t.nombre}</div><div class="task-meta">${t.area||''}${t.cliente?' · '+t.cliente:''}</div></div><div style="text-align:right"><div class="task-date">${ds}</div><span class="days-badge ${dc}">${dt}</span></div></div>`;
+    }).join('');
+  }
+  updateBadges();
+}
+
+function renderEisenhower() {
+  const allTasks = window.tasks || [];
+  [['Q1','Q1 Importante + urgente'],['Q2','Q2 Importante no urgente'],['Q3','Q3 Urgente no importante'],['Q4','Q4 Ni importante ni urgente']].forEach(([q, key]) => {
+    const list = allTasks.filter(t => t.cuadrante === key && t.estado !== 'Completada');
+    const countEl = document.getElementById('count' + q);
+    if(countEl) countEl.textContent = list.length;
+    const el = document.getElementById('list' + q);
+    if(!el) return;
+    if(!list.length) { el.innerHTML = '<div class="empty" style="padding:16px 0;font-size:12px;">Sin tareas</div>'; return; }
+    el.innerHTML = list.map(t => {
+      const days = daysUntil(t.fecha);
+      const ds = t.fecha ? new Date(t.fecha+'T12:00:00').toLocaleDateString('es-ES',{day:'2-digit',month:'short',year:'numeric'}) : '';
+      return `<div class="q-task"><div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;"><div class="q-task-name">${t.nombre}</div><div style="display:flex;gap:2px;"><button class="icon-btn" onclick="completeTask('${t.id}')">✓</button><button class="icon-btn" onclick="deleteTask('${t.id}')">×</button></div></div><div class="q-task-meta"><span>${t.area||''}</span>${t.cliente?`<span>· ${t.cliente}</span>`:''} ${ds?`<span style="color:var(--navy);font-weight:600;">· ${ds}</span>`:''} ${days!==null&&days<=7&&days>=0?`<span style="color:var(--q1);font-weight:600;">· ${days===0?'Hoy':days===1?'Mañana':days+'d'}</span>`:''}</div></div>`;
+    }).join('');
+  });
+}
+
+function renderCalendar() {
+  const now = new Date();
+  if(calYear === undefined) { calYear = now.getFullYear(); calMonth = now.getMonth(); }
+  const months = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  document.getElementById('calMonth').textContent = `${months[calMonth]} ${calYear}`;
+  const grid = document.getElementById('calGrid');
+  const hdrs = Array.from(grid.querySelectorAll('.cal-day-header'));
+  grid.innerHTML = '';
+  hdrs.forEach(h => grid.appendChild(h));
+  const first = new Date(calYear, calMonth, 1);
+  let sd = first.getDay() - 1; if(sd < 0) sd = 6;
+  const dim = new Date(calYear, calMonth+1, 0).getDate();
+  const dip = new Date(calYear, calMonth, 0).getDate();
+  const todayStr = now.toISOString().slice(0, 10);
+  const allTasks = window.tasks || [];
+  for(let i = 0; i < sd; i++) {
+    const d = document.createElement('div');
+    d.className = 'cal-day other-month';
+    d.innerHTML = `<div class="cal-day-num">${dip-sd+i+1}</div>`;
+    grid.appendChild(d);
+  }
+  for(let day = 1; day <= dim; day++) {
+    const ds = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    const dt = allTasks.filter(t => t.fecha === ds && t.estado !== 'Completada');
+    const d = document.createElement('div');
+    d.className = 'cal-day' + (ds === todayStr ? ' today' : '');
+    d.innerHTML = `<div class="cal-day-num">${day}</div>` +
+      dt.slice(0,3).map(t => `<div class="cal-event ${qClass(t.cuadrante)}">${t.nombre}</div>`).join('') +
+      (dt.length > 3 ? `<div style="font-size:10px;color:var(--gray-400)">+${dt.length-3} más</div>` : '');
+    grid.appendChild(d);
+  }
+  const total = sd + dim;
+  const rem = total%7 === 0 ? 0 : 7-(total%7);
+  for(let i = 1; i <= rem; i++) {
+    const d = document.createElement('div');
+    d.className = 'cal-day other-month';
+    d.innerHTML = `<div class="cal-day-num">${i}</div>`;
+    grid.appendChild(d);
+  }
+}
+
+function changeMonth(dir) {
+  calMonth += dir;
+  if(calMonth > 11) { calMonth = 0; calYear++; }
+  if(calMonth < 0) { calMonth = 11; calYear--; }
+  renderCalendar();
+}
+
+function setFiltroClientes(filtro, btn) {
+  filtroClientes = filtro;
+  document.querySelectorAll('.filter-tab').forEach(b => b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  renderClientesList();
+}
+
+function filterClientes(v) { renderClientesList(v); }
+
+function renderClientesList(filter) {
+  const el = document.getElementById('clientesList');
+  if(!el) return;
+  const allClients = window.clients || [];
+  const filterLow = (filter || '').toLowerCase();
+  let list = allClients.filter(c => {
+    if(filterLow && !(c.nombre||'').toLowerCase().includes(filterLow) && !(c.nif||'').toLowerCase().includes(filterLow)) return false;
+    if(filtroClientes === 'mios') return c.owner === window.currentUid;
+    if(filtroClientes === 'compartidos') return c.visibilidad === 'compartido';
+    return true;
+  });
+  if(!list.length) {
+    el.innerHTML = '<div class="empty"><div class="empty-icon">👤</div><div class="empty-text">No hay clientes.</div></div>';
+    return;
+  }
+  const allTasks = window.tasks || [];
+  el.innerHTML = list.map(c => {
+    const tp = allTasks.filter(t => t.cliente === c.nombre && t.estado !== 'Completada').length;
+    const esCompartido = c.visibilidad === 'compartido';
+    const svcs = (c.servicios||'').split('|').map(s => `<span class="badge badge-tipo">${s.trim()}</span>`).join('');
+    return `<div class="cliente-card${esCompartido?' compartido':''}" onclick="showFicha('${c.id}')">
+      <div class="cliente-avatar">${initials(c.nombre)}</div>
+      <div class="cliente-info">
+        <div class="cliente-nombre">${c.nombre}</div>
+        <div class="cliente-nif">${c.nif||'Sin NIF'} · ${c.tipo||''}</div>
+        <div class="cliente-badges">
+          ${esCompartido ? '<span class="badge badge-compartido">🌐 Compartido</span>' : ''}
+          ${svcs}
+          <span class="badge badge-tipo">IVA ${c.iva||'General'}</span>
+        </div>
+      </div>
+      <div class="cliente-tareas"><div class="cliente-tareas-num">${tp}</div><div class="cliente-tareas-label">tareas</div></div>
+    </div>`;
+  }).join('');
+}
+
+function showClientesList() {
+  document.getElementById('clientesLista').style.display = '';
+  document.getElementById('clienteFicha').style.display = 'none';
+  document.getElementById('fabBtn').style.display = 'flex';
+}
+
+function showFicha(id) {
+  const c = (window.clients || []).find(x => String(x.id) === String(id));
+  if(!c) return;
+  document.getElementById('clientesLista').style.display = 'none';
+  document.getElementById('fabBtn').style.display = 'none';
+  const allTasks = window.tasks || [];
+  const ct = allTasks.filter(t => t.cliente === c.nombre && t.estado !== 'Completada');
+  const esCompartido = c.visibilidad === 'compartido';
+  const esMio = c.owner === window.currentUid;
+
+  // Documentos: si es compartido ve todos, si es privado solo los suyos
+  const docsVisibles = (c.docs||[]).filter(d => esCompartido || d.owner === window.currentUid);
+
+  const fichaEl = document.getElementById('clienteFicha');
+  fichaEl.style.display = '';
+  fichaEl.innerHTML = `
+    <button class="ficha-back" onclick="showClientesList();renderClientesList()">← Volver</button>
+    <div class="ficha-header">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;">
+        <div>
+          <div class="ficha-avatar">${initials(c.nombre)}</div>
+          <div class="ficha-nombre">${c.nombre}</div>
+          <div class="ficha-nif">${c.nif||'Sin NIF'} · ${c.tipo||''}</div>
+          <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;">
+            ${esCompartido?'<span class="badge badge-compartido">🌐 Compartido</span>':'<span style="font-size:11px;color:var(--gray-400);">🔒 Privado</span>'}
+          </div>
+        </div>
+        <div style="display:flex;gap:6px;">
+          ${esMio ? `<button class="btn btn-sm btn-gold" onclick="openClienteModal('${c.id}')">Editar</button>` : ''}
+          ${esMio ? `<button class="btn btn-sm btn-danger" onclick="deleteCliente('${c.id}')">Eliminar</button>` : ''}
+        </div>
+      </div>
+      <div class="ficha-grid">
+        <div class="ficha-dato"><div class="ficha-dato-label">Teléfono</div><div class="ficha-dato-val">${c.tel||'—'}</div></div>
+        <div class="ficha-dato"><div class="ficha-dato-label">Email</div><div class="ficha-dato-val">${c.email||'—'}</div></div>
+        <div class="ficha-dato"><div class="ficha-dato-label">Régimen IVA</div><div class="ficha-dato-val">${c.iva||'General'}</div></div>
+        <div class="ficha-dato"><div class="ficha-dato-label">Departamentos</div><div class="ficha-dato-val">${c.servicios||'—'}</div></div>
+      </div>
+    </div>
+    <div class="ficha-section">
+      <div class="ficha-section-header">
+        <span class="ficha-section-title">Tareas pendientes (${ct.length})</span>
+        <button class="btn btn-sm btn-primary" onclick="openTaskModalForClient('${c.nombre}')">+ Tarea</button>
+      </div>
+      ${ct.length ? ct.map(t => {
+        const ds = t.fecha ? new Date(t.fecha+'T12:00:00').toLocaleDateString('es-ES',{day:'2-digit',month:'short',year:'numeric'}) : 'Sin fecha';
+        return `<div class="ficha-task-item"><div class="task-dot ${qClass(t.cuadrante)}"></div><div style="flex:1"><div style="font-size:13px;font-weight:500;">${t.nombre}</div><div style="font-size:11px;color:var(--gray-400);">${t.area||''} · ${ds}${t.ownerName?' · '+t.ownerName:''}</div></div><button class="icon-btn" onclick="completeTask('${t.id}');setTimeout(()=>showFicha('${c.id}'),800)">✓</button></div>`;
+      }).join('') : '<div class="empty" style="padding:16px;">Sin tareas pendientes</div>'}
+    </div>
+    <div class="ficha-section">
+      <div class="ficha-section-header"><span class="ficha-section-title">Notas</span></div>
+      <div id="notasList_${c.id}">
+        ${(c.notas||[]).length ? (c.notas||[]).map((n,i) => `<div class="nota-item"><div class="nota-texto">${n.texto}</div><div style="display:flex;align-items:center;justify-content:space-between;"><div class="nota-fecha">${n.autor||''} · ${new Date(n.fecha).toLocaleDateString('es-ES',{day:'2-digit',month:'short',year:'numeric'})}</div><button class="icon-btn" onclick="deleteNota('${c.id}',${i})">×</button></div></div>`).join('') : '<div class="empty" style="padding:16px;">Sin notas</div>'}
+      </div>
+      <div class="nota-input-row">
+        <textarea class="nota-input" id="notaInput_${c.id}" rows="2" placeholder="Escribe una nota..."></textarea>
+        <button class="btn btn-primary btn-sm" style="align-self:flex-end;" onclick="addNota('${c.id}')">Añadir</button>
+      </div>
+    </div>
+    <div class="ficha-section">
+      <div class="ficha-section-header"><span class="ficha-section-title">Documentos${esCompartido?'':' (privados)'}</span></div>
+      <div>
+        ${docsVisibles.length ? docsVisibles.map((d,i) => `
+        <div class="doc-item">
+          <div class="doc-icon">📄</div>
+          <div class="doc-info"><div class="doc-nombre">${d.nombre}</div><div class="doc-fecha">${d.ownerName||''} · ${new Date(d.fecha).toLocaleDateString('es-ES',{day:'2-digit',month:'short',year:'numeric'})}</div></div>
+          <div style="display:flex;gap:4px;align-items:center;">
+            ${d.url?`<a href="${d.url}" target="_blank" class="btn btn-sm" style="background:var(--q2-bg);color:var(--q2);text-decoration:none;font-size:11px;">Abrir</a>`:''}
+            ${d.url?`<a href="https://wa.me/?text=${encodeURIComponent(d.nombre+': '+d.url)}" target="_blank" class="btn btn-sm" style="background:#F0FDF4;color:#25D366;text-decoration:none;font-size:11px;">WA</a>`:''}
+            ${d.url?`<a href="mailto:?subject=${encodeURIComponent(d.nombre)}&body=${encodeURIComponent(d.url)}" class="btn btn-sm" style="background:#F0FDF4;color:#059669;text-decoration:none;font-size:11px;">Email</a>`:''}
+            ${d.owner===window.currentUid?`<button class="icon-btn" onclick="deleteDoc('${c.id}',${(c.docs||[]).indexOf(d)})">×</button>`:''}
+          </div>
+        </div>`).join('') : '<div class="empty" style="padding:16px;">Sin documentos.</div>'}
+      </div>
+      <div style="padding:12px 18px;border-top:0.5px solid var(--gray-100);">
+        <div style="font-size:11px;color:var(--gray-400);margin-bottom:8px;">Sube el PDF a OneDrive y pega el enlace aquí.</div>
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          <input type="text" class="nota-input" id="docNombre_${c.id}" placeholder="Nombre del documento" style="width:100%;">
+          <input type="text" class="nota-input" id="docUrl_${c.id}" placeholder="Enlace de OneDrive" style="width:100%;">
+          <div style="display:flex;justify-content:flex-end;">
+            <button class="btn btn-primary btn-sm" onclick="addDoc('${c.id}')">Añadir documento</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+}
+
+function renderProspectos() {
+  const list = window.prospectos || [];
+  const set = (id, val) => { const el = document.getElementById(id); if(el) el.textContent = val; };
+  set('statProspectos', list.filter(p => p.tipo === 'Prospecto').length);
+  set('statLlamadas', list.filter(p => p.tipo === 'Llamada pendiente').length);
+  const el = document.getElementById('prospectosList');
+  if(!el) return;
+  if(!list.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">◎</div><div class="empty-text">Sin prospectos.</div></div>'; return; }
+  const sorted = [...list].sort((a,b) => {
+    if(a.fecha && b.fecha) return new Date(a.fecha) - new Date(b.fecha);
+    if(a.fecha) return -1; if(b.fecha) return 1; return 0;
+  });
+  const tc = {'Prospecto':'#8B5CF6','Llamada pendiente':'#F59E0B','Reunión pendiente':'#2B7FFF','Nota personal':'#6B7280','Tarea propia':'#10B981'};
+  el.innerHTML = sorted.map(p => {
+    const color = tc[p.tipo] || '#6B7280';
+    const ds = p.fecha ? new Date(p.fecha+'T12:00:00').toLocaleDateString('es-ES',{day:'2-digit',month:'short',year:'numeric'}) : '';
+    return `<div class="card" style="margin-bottom:10px;border-left:3px solid ${color};">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">
+        <div style="flex:1;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+            <span style="font-size:15px;font-weight:600;">${p.nombre}</span>
+            <span style="font-size:11px;padding:2px 8px;border-radius:20px;background:${color}20;color:${color};font-weight:500;">${p.tipo}</span>
+          </div>
+          ${p.tel?`<div style="font-size:12px;color:var(--gray-400);">📞 ${p.tel}</div>`:''}
+          ${p.email?`<div style="font-size:12px;color:var(--gray-400);">✉ ${p.email}</div>`:''}
+          ${p.notas?`<div style="font-size:13px;color:var(--gray-600);margin-top:6px;">${p.notas}</div>`:''}
+          ${ds?`<div style="font-size:11px;color:var(--accent);font-weight:500;margin-top:4px;">📅 Seguimiento: ${ds}</div>`:''}
+        </div>
+        <div style="display:flex;gap:4px;">
+          <button class="icon-btn" onclick="openProspectoModal('${p.id}')">✏</button>
+          <button class="icon-btn" onclick="deleteProspecto('${p.id}')">×</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+  updateBadges();
+}
+
+function updateBadges() {
+  const allTasks = window.tasks || [];
+  const allProspectos = window.prospectos || [];
+  const urgentes = allTasks.filter(t => t.estado !== 'Completada' && (t.cuadrante||'').includes('Q1') && t.fecha && daysUntil(t.fecha) !== null && daysUntil(t.fecha) <= 2);
+  const bt = document.getElementById('badgeTareas');
+  if(bt) { bt.textContent = urgentes.length; bt.style.display = urgentes.length > 0 ? 'inline' : 'none'; }
+  const pendPros = allProspectos.filter(p => p.fecha && daysUntil(p.fecha) !== null && daysUntil(p.fecha) <= 0);
+  const bp = document.getElementById('badgeProspectos');
+  if(bp) { bp.textContent = pendPros.length; bp.style.display = pendPros.length > 0 ? 'inline' : 'none'; }
+  const alertasPanel = document.getElementById('alertasPanel');
+  const alertasList = document.getElementById('alertasList');
+  if(!alertasPanel || !alertasList) return;
+  const alertas = [];
+  allTasks.filter(t => t.estado !== 'Completada' && t.fecha).forEach(t => {
+    const days = daysUntil(t.fecha);
+    if(days < 0) alertas.push(`<div style="font-size:13px;color:#7F1D1D;margin-bottom:4px;">⚠ <strong>${t.nombre}</strong> — venció hace ${Math.abs(days)} día(s)${t.cliente?' · '+t.cliente:''}</div>`);
+    else if(days === 0) alertas.push(`<div style="font-size:13px;color:#991B1B;margin-bottom:4px;">🔴 <strong>${t.nombre}</strong> — vence HOY${t.cliente?' · '+t.cliente:''}</div>`);
+    else if(days === 1) alertas.push(`<div style="font-size:13px;color:#B91C1C;margin-bottom:4px;">🟠 <strong>${t.nombre}</strong> — vence MAÑANA${t.cliente?' · '+t.cliente:''}</div>`);
+  });
+  allProspectos.filter(p => p.fecha).forEach(p => {
+    const days = daysUntil(p.fecha);
+    if(days !== null && days <= 0) alertas.push(`<div style="font-size:13px;color:#92400E;margin-bottom:4px;">📞 <strong>${p.nombre}</strong> — seguimiento${days < 0?' hace '+Math.abs(days)+'d':' HOY'}</div>`);
+  });
+  alertasPanel.style.display = alertas.length > 0 ? 'block' : 'none';
+  alertasList.innerHTML = alertas.join('');
+}
+
+// ── Biometría ────────────────────────────────────────────────────────────────
+
+const BIOMETRIC_KEY = 'catan_biometric';
+const BIOMETRIC_CRED = 'catan_credential_id';
+
+function checkBiometricAvailable() {
+  if(window.PublicKeyCredential && localStorage.getItem(BIOMETRIC_KEY) === 'true') {
+    document.getElementById('biometricSection').style.display = 'block';
+  }
+}
+
+function updateHuellaBtn() {
+  const btn = document.getElementById('btnHuella');
+  if(!btn) return;
+  btn.style.color = localStorage.getItem(BIOMETRIC_KEY) === 'true' ? '#D4A017' : '#8A9BB0';
+}
+
+function gestionarHuella() {
+  const activa = localStorage.getItem(BIOMETRIC_KEY) === 'true';
+  if(activa) {
+    if(confirm('La huella está activada. ¿Desactivar?')) {
+      localStorage.removeItem(BIOMETRIC_KEY);
+      localStorage.removeItem(BIOMETRIC_CRED);
+      updateHuellaBtn();
+    }
+  } else {
+    if(confirm('¿Activar acceso con huella dactilar?')) activarHuella();
+  }
+}
+
+async function activarHuella() {
+  if(!window.PublicKeyCredential) { alert('Tu dispositivo no soporta biometría.'); return; }
+  try {
+    const challenge = new Uint8Array(32);
+    window.crypto.getRandomValues(challenge);
+    const credential = await navigator.credentials.create({
+      publicKey: {
+        challenge,
+        rp: { name: 'Catan Consulting', id: window.location.hostname },
+        user: { id: new TextEncoder().encode('catan-user'), name: 'Catan', displayName: 'Catan Consulting' },
+        pubKeyCredParams: [{ alg: -7, type: 'public-key' }],
+        authenticatorSelection: { authenticatorAttachment: 'platform', userVerification: 'required' },
+        timeout: 60000
+      }
+    });
+    const credId = btoa(String.fromCharCode(...new Uint8Array(credential.rawId)));
+    localStorage.setItem(BIOMETRIC_CRED, credId);
+    localStorage.setItem(BIOMETRIC_KEY, 'true');
+    document.getElementById('biometricSetupSection').style.display = 'none';
+    updateHuellaBtn();
+    alert('✅ Huella activada.');
+  } catch(e) { alert('No se pudo activar la huella.'); }
+}
+
+async function loginConHuella() {
+  try {
+    const challenge = new Uint8Array(32);
+    window.crypto.getRandomValues(challenge);
+    const credIdStr = localStorage.getItem(BIOMETRIC_CRED);
+    if(!credIdStr) { alert('No hay huella registrada.'); return; }
+    const credId = Uint8Array.from(atob(credIdStr), c => c.charCodeAt(0));
+    await navigator.credentials.get({
+      publicKey: { challenge, rpId: window.location.hostname, allowCredentials: [{ type: 'public-key', id: credId }], userVerification: 'required', timeout: 60000 }
+    });
+    const savedEmail = localStorage.getItem('catan_saved_email');
+    const savedPass = localStorage.getItem('catan_saved_pass');
+    if(savedEmail && savedPass) {
+      window.fsSignIn(window.auth, savedEmail, savedPass).catch(() => alert('Error al iniciar sesión.'));
+    }
+  } catch(e) {
+    document.getElementById('loginError').style.display = 'block';
+    document.getElementById('loginError').textContent = 'Huella no reconocida.';
+  }
+}
+
+// ── Login ────────────────────────────────────────────────────────────────────
+
+function doLogin() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  document.getElementById('loginError').style.display = 'none';
+  if(!email || !password) return;
+  window.fsSignIn(window.auth, email, password)
+    .then(() => {
+      localStorage.setItem('catan_saved_email', email);
+      localStorage.setItem('catan_saved_pass', password);
+      if(window.PublicKeyCredential && localStorage.getItem(BIOMETRIC_KEY) !== 'true') {
+        document.getElementById('biometricSetupSection').style.display = 'block';
+      }
+    })
+    .catch(() => {
+      document.getElementById('loginError').style.display = 'block';
+      document.getElementById('loginError').textContent = 'Email o contraseña incorrectos';
+    });
+}
+
+function doLogout() { window.fsSignOut(window.auth); }
+
+// ── Init ─────────────────────────────────────────────────────────────────────
+
+document.getElementById('headerDate').textContent = new Date().toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+document.getElementById('loginEmail').addEventListener('keydown', e => { if(e.key==='Enter') document.getElementById('loginPassword').focus(); });
+document.getElementById('loginPassword').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
+checkBiometricAvailable();
+updateHuellaBtn();
+</script>
+</body>
+</html>
