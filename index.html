@@ -443,15 +443,19 @@ main{flex:1;padding:24px;max-width:1200px;margin:0 auto;width:100%;}
     </div>
     <div class="form-row">
       <div class="form-group"><label class="form-label">Régimen IVA</label>
-        <select class="form-select" id="cIva"><option>General</option><option>Simplificado</option><option>Exento</option></select>
+        <select class="form-select" id="cIva"><option value="">— No aplica —</option><option>General</option><option>Simplificado</option><option>Exento</option></select>
       </div>
-      <div class="form-group"><label class="form-label">Departamentos</label>
-        <select class="form-select" id="cServicios">
-          <option>Fiscal</option><option>Contable</option><option>Laboral</option>
-          <option>Jurídico</option><option>Compra-venta</option><option>Suministros</option><option>Seguros</option>
-          <option>Fiscal | Contable</option><option>Fiscal | Laboral</option>
-          <option>Fiscal | Contable | Laboral</option><option>Todos</option>
-        </select>
+      <div class="form-group">
+        <label class="form-label">Departamentos</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:10px 12px;border:1.5px solid var(--gray-200);border-radius:8px;background:white;" id="cServiciosGrid">
+          <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;"><input type="checkbox" id="cSvc_fiscal" value="Fiscal"> Fiscal</label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;"><input type="checkbox" id="cSvc_contable" value="Contable"> Contable</label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;"><input type="checkbox" id="cSvc_laboral" value="Laboral"> Laboral</label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;"><input type="checkbox" id="cSvc_juridico" value="Jurídico"> Jurídico</label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;"><input type="checkbox" id="cSvc_compraventa" value="Compra-venta"> Compra-venta</label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;"><input type="checkbox" id="cSvc_suministros" value="Suministros"> Suministros</label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;"><input type="checkbox" id="cSvc_seguros" value="Seguros"> Seguros</label>
+        </div>
       </div>
     </div>
     <div class="form-group">
@@ -699,13 +703,22 @@ function openClienteModal(id) {
     document.getElementById('cTel').value = c.tel || '';
     document.getElementById('cEmail').value = c.email || '';
     document.getElementById('cIva').value = c.iva || 'General';
-    document.getElementById('cServicios').value = c.servicios || 'Fiscal';
+    // Cargar checkboxes de departamentos
+    const svcsActivos = (c.servicios||'').split('|').map(s=>s.trim());
+    ['fiscal','contable','laboral','juridico','compraventa','suministros','seguros'].forEach(id => {
+      const el = document.getElementById('cSvc_'+id);
+      if(el) el.checked = svcsActivos.includes(el.value);
+    });
     document.getElementById('cVisibilidad').value = c.visibilidad || 'privado';
   } else {
     ['cNombre','cNif','cTel','cEmail'].forEach(f => document.getElementById(f).value = '');
     document.getElementById('cTipo').value = 'Sociedad';
     document.getElementById('cIva').value = 'General';
-    document.getElementById('cServicios').value = 'Fiscal';
+    // Limpiar checkboxes
+    ['fiscal','contable','laboral','juridico','compraventa','suministros','seguros'].forEach(id => {
+      const el = document.getElementById('cSvc_'+id);
+      if(el) el.checked = false;
+    });
     document.getElementById('cVisibilidad').value = 'privado';
   }
   document.getElementById('clienteModalOverlay').classList.add('open');
@@ -725,7 +738,11 @@ async function saveCliente() {
     tel: document.getElementById('cTel').value.trim(),
     email: document.getElementById('cEmail').value.trim(),
     iva: document.getElementById('cIva').value,
-    servicios: document.getElementById('cServicios').value,
+    servicios: ['fiscal','contable','laboral','juridico','compraventa','suministros','seguros']
+      .map(id => document.getElementById('cSvc_'+id))
+      .filter(el => el && el.checked)
+      .map(el => el.value)
+      .join(' | ') || '—',
     visibilidad: document.getElementById('cVisibilidad').value,
     owner: window.currentUid,
     ownerName: window.currentUserName,
